@@ -21,7 +21,12 @@ export function fabricTextures(kind='linen',macro=false){
  if(kind==='linen'){let s=65;for(let i=0;i<2800;i++){s=s*16807%2147483647;const x=s%256;s=s*16807%2147483647;const y=s%256;c.fillStyle=i%2?'#fff2':'#0002';c.fillRect(x,y,1,2)}}
  const bump=new THREE.CanvasTexture(canvas);bump.wrapS=bump.wrapT=THREE.RepeatWrapping;const n=macro?(kind==='linen'?2.4:3.8):kind==='linen'?13:20;bump.repeat.set(n,n*1.414);bump.anisotropy=4;
  const albedoCanvas=document.createElement('canvas');albedoCanvas.width=albedoCanvas.height=256;const a=albedoCanvas.getContext('2d');a.fillStyle='#ddd';a.fillRect(0,0,256,256);a.globalAlpha=.22;a.drawImage(canvas,0,0);
- const map=new THREE.CanvasTexture(albedoCanvas);map.wrapS=map.wrapT=THREE.RepeatWrapping;map.repeat.copy(bump.repeat);map.colorSpace=THREE.SRGBColorSpace;map.anisotropy=4;return {bump,map};
+ const map=new THREE.CanvasTexture(albedoCanvas);map.wrapS=map.wrapT=THREE.RepeatWrapping;map.repeat.copy(bump.repeat);map.colorSpace=THREE.SRGBColorSpace;map.anisotropy=4;
+ const pixels=c.getImageData(0,0,256,256).data,normalCanvas=document.createElement('canvas');normalCanvas.width=normalCanvas.height=256;
+ const nc=normalCanvas.getContext('2d'),normalPixels=nc.createImageData(256,256),at=(x,y)=>pixels[(((y+256)%256)*256+(x+256)%256)*4]/255;
+ for(let y=0;y<256;y++)for(let x=0;x<256;x++){const dx=(at(x-1,y)-at(x+1,y))*1.8,dy=(at(x,y+1)-at(x,y-1))*1.8,n=new THREE.Vector3(dx,dy,1).normalize(),i=(y*256+x)*4;normalPixels.data.set([(n.x*.5+.5)*255,(n.y*.5+.5)*255,(n.z*.5+.5)*255,255],i)}
+ nc.putImageData(normalPixels,0,0);const normal=new THREE.CanvasTexture(normalCanvas);normal.wrapS=normal.wrapT=THREE.RepeatWrapping;normal.repeat.copy(bump.repeat);normal.anisotropy=4;
+ return {bump,map,normal};
 }
 
 const metalCache=new Map(),fabricCache=new Map();

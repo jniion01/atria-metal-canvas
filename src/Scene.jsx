@@ -1,4 +1,4 @@
-import React,{useMemo,useRef,useEffect,Component} from 'react';
+import React,{useMemo,useRef,useEffect,useLayoutEffect,Component} from 'react';
 import {Canvas,useFrame,useThree} from '@react-three/fiber';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import * as THREE from 'three';
@@ -9,7 +9,8 @@ import RenderEngine from './RenderEngine';
 import {bindSceneGestures} from './sceneGestures';
 import {createFoldedGeometry,foldedAssembly} from './foldedGeometry';
 RectAreaLightUniformsLib.init();
-import {dimensions,cameraDistance} from './dimensions';
+import {dimensions} from './dimensions';
+import {viewRadius,fitDistance,safeView,inspectionDistance,resizedDistance} from './viewFraming';
 import {getMetalMaps,getFabricMaps,getStudioEnvironment,getPlaster} from './textures';
 
 function Environment({room,theme}){
@@ -21,7 +22,7 @@ function Part({id,onSelect,children}){
 }
 function Cloth({color,fabric,macro=false,selected=false}){
  const textures=getFabricMaps(fabric,macro);
- return <meshPhysicalMaterial color={color} map={fabric==='smooth'?null:textures.map} roughness={fabric==='smooth'?.77:.96} bumpMap={fabric==='smooth'?null:textures.bump} bumpScale={macro?.0012:.00035} sheen={fabric==='smooth'?0:.35} sheenColor="#c1c4cd" sheenRoughness={.9} emissive={selected?'#335258':'#000'} emissiveIntensity={.06}/>;
+ return <meshPhysicalMaterial color={color} map={fabric==='smooth'?null:textures.map} roughness={fabric==='smooth'?.77:.96} normalMap={fabric==='smooth'?null:textures.normal} normalScale={new THREE.Vector2(macro?.45:.22,macro?.45:.22)} sheen={fabric==='smooth'?0:.35} sheenColor="#c1c4cd" sheenRoughness={.9} emissive={selected?'#335258':'#000'} emissiveIntensity={.06}/>;
 }
 function Metal({maps,selected=false}){return <meshPhysicalMaterial side={THREE.DoubleSide} map={maps.map} roughnessMap={maps.roughness} color="#e9e9e5" metalness={1} roughness={.57} envMapIntensity={1} anisotropy={.45} emissive={selected?'#335258':'#000'} emissiveIntensity={.06}/>}
 const rimMaterials=new Map();
@@ -35,7 +36,7 @@ function Comparison({theme}){
  useEffect(()=>()=>lines.forEach(g=>g.dispose()),[lines]);
  return <>{lines.map((g,i)=><line key={i} geometry={g} onUpdate={line=>line.computeLineDistances()} renderOrder={4}>{i?<lineDashedMaterial color={theme==='dark'?'#fff':'#1a3121'} dashSize={.018} gapSize={.012} depthTest={false}/>:<lineBasicMaterial color={theme==='dark'?'#d1d8c8':'#3b4932'} transparent opacity={.65} depthTest={false}/>}</line>)}</>;
 }
-function Model({color,mode,explode,selected,onSelect,format,pattern,fabric,engraving,theme,motion,construction}){
+export function Model({color,mode,explode,selected,onSelect,format,pattern,fabric,engraving,theme,motion,construction,onModelReady}){
  const root=useRef(),face=useRef(),bg=useRef(),back=useRef(),mount=useRef();
  const {invalidate,gl}=useThree();
  const folded=construction==='folded';
@@ -43,16 +44,18 @@ function Model({color,mode,explode,selected,onSelect,format,pattern,fabric,engra
  const {width:w,height:h,metal:t}=dimensions[format],rim=format==='large'?.02:.015,depth=format==='large'?.04:.024;
  const shell=useMemo(()=>folded?createFoldedGeometry(pattern,w,h,t,depth):null,[folded,pattern,w,h,t,depth]);
  const foldProgress=useRef(explode);
+ useEffect(()=>{onModelReady?.(()=>root.current?.userData.arReady?root.current:null);return()=>onModelReady?.(null)},[onModelReady]);
  useEffect(()=>{if(shell)shell.update(foldedAssembly(foldProgress.current).fold);gl.shadowMap.needsUpdate=true;invalidate();return()=>shell?.dispose()},[shell,gl,invalidate]);
  useFrame((_,delta)=>{
-  const k=1-Math.exp(-Math.min(delta,.05)*8),old=foldProgress.current;
-  foldProgress.current=Math.abs(old-explode)<.001?explode:THREE.MathUtils.lerp(old,explode,k);
+  const k=mode==='assembly'?1-Math.exp(-Math.min(delta,.05)*8):1,old=foldProgress.current;
+  foldProgress.current=mode!=='assembly'?0:Math.abs(old-explode)<.001?explode:THREE.MathUtils.lerp(old,explode,k);
   const progress=foldedAssembly(foldProgress.current),d=folded?progress.separation:explode/100;let changed=old!==foldProgress.current;
   // Animate one timeline, never two independent angle lerps: pairs remain sequential even on a jump from 0 to 100.
   if(shell&&changed)shell.update(progress.fold);
   const ease=(object,key,target)=>{const old=object[key];object[key]=Math.abs(old-target)<.00001?target:THREE.MathUtils.lerp(old,target,k);changed ||= object[key]!==old};
-  ease(root.current.position,'y',mode==='scale'?-.75+h/2:0);
+  root.current.position.y=mode==='scale'?-.75+h/2:0;
   ease(face.current.position,'z',.012+d*h*.47);ease(bg.current.position,'z',-d*h*.10);ease(back.current.position,'z',(folded?.012+t-depth-.002:-depth)-d*h*.34);ease(mount.current.position,'z',(folded?.012+t-depth-.014:-depth-.012)-d*h*.55);
+  root.current.userData.arReady=mode==='object'&&explode===0&&foldProgress.current===0&&!changed;
   if(changed){motion.changedAt=performance.now();gl.shadowMap.needsUpdate=true;invalidate()}
  });
  const pick={onSelect};
@@ -68,8 +71,8 @@ function MaterialStudy({color,fabric,engraving,detail,pattern,construction}){
  const maps=getMetalMaps(engraving,true,construction==='folded'?'cut:'+pattern.id:pattern.id);
  return <group rotation={[-.05,-.16,0]}><mesh castShadow receiveShadow><boxGeometry args={[.37,.37,.009]}/>{detail==='fabric'?<Cloth color={color} fabric={fabric} macro/>:<Metal maps={maps}/>}</mesh>{detail==='fabric'&&fabric!=='smooth'&&<mesh position={[.13,-.16,.012]} rotation={[0,0,-.15]}><boxGeometry args={[.09,.07,.005]}/><Cloth color={color} fabric={fabric} macro/></mesh>}</group>;
 }
-function Controls({format,resetKey,mode,wall,motion}){
- const {camera,gl,size,invalidate}=useThree(),interacting=useRef(false);
+function Controls({format,resetKey,mode,wall,motion,construction}){
+ const {camera,gl,size,invalidate}=useThree(),interacting=useRef(false),framing=useRef(null);
  const mounted=wall&&mode==='object';
  const controls=useMemo(()=>{
   // OrbitControls captures its up axis when constructed. Keep it upright in every mode.
@@ -89,23 +92,44 @@ function Controls({format,resetKey,mode,wall,motion}){
   controls.maxAzimuthAngle=mounted?.85:Infinity;
   controls.touches.ONE=THREE.TOUCH.ROTATE;
   controls.touches.TWO=THREE.TOUCH.DOLLY_PAN; // Pinch zoom; pan is disabled above.
-  controls.zoomSpeed=.7;
+  controls.zoomSpeed=1;
   const changed=()=>{motion.changedAt=performance.now();invalidate()},start=()=>{interacting.current=true;changed()},end=()=>{interacting.current=false;changed()};
   controls.addEventListener('change',changed);controls.addEventListener('start',start);controls.addEventListener('end',end);
   return()=>{controls.removeEventListener('change',changed);controls.removeEventListener('start',start);controls.removeEventListener('end',end);controls.dispose();releaseGestures();document.body.style.cursor=''};
  },[controls,gl,mounted,invalidate,motion]);
- useEffect(()=>{
-  const base=cameraDistance(format,mode,size.width/Math.max(1,size.height)),d=mounted?base*1.46:mode==='object'?base*1.22:base;
-  controls.target.set(0,mounted?-dimensions[format].height*.08:0,0);
-  controls.minDistance=mode==='detail'?.28:dimensions[format].height*.4;controls.maxDistance=d*3;
-  camera.up.set(0,1,0);
-  camera.position.set(mode==='assembly'?-d*.48:0,mode==='assembly'?d*.12:0,d);
-  // Flush residual damping before recording the exact upright home view.
-  controls.enableDamping=false;camera.lookAt(controls.target);controls.update();
-  camera.position.set(mode==='assembly'?-d*.48:0,mode==='assembly'?d*.12:0,d);
-  controls.update();controls.saveState();controls.enableDamping=true;
-  motion.changedAt=performance.now();invalidate();
- },[format,mode,mounted,resetKey,size.width,size.height,controls,camera,invalidate,motion]);
+ useLayoutEffect(()=>{
+  const stage=gl.domElement.closest('.stage');if(!stage||!size.width||!size.height)return;
+  const revision=[format,mode,mounted,construction,resetKey].join('|');
+  const frame=()=>{
+   const bounds=stage.getBoundingClientRect();
+   let top=24,bottom=24;
+   for(const selector of ['.canvas-tools','.scene-settings','.material-caption','.scale-caption','.photo-tools']){
+    const el=stage.querySelector(selector);if(el?.offsetHeight)top=Math.max(top,el.getBoundingClientRect().bottom-bounds.top+18);
+   }
+   const footer=stage.querySelector('.stage-bottom');if(footer)bottom=bounds.bottom-footer.getBoundingClientRect().top+18;
+   const layout=[size.width,size.height,top,bottom].join('|'),previous=framing.current;
+   if(previous?.layout===layout&&previous?.revision===revision)return;
+   const safe=safeView(size.width,size.height,top,bottom),radius=viewRadius(format,mode,construction==='folded');
+   const fit=fitDistance(radius,size.width,size.height,safe),reset=previous?.revision!==revision;
+   controls.minDistance=inspectionDistance(format,mode);
+   controls.maxDistance=fit*3;
+   // Safari toolbars and UI resizing preserve the user's angle and relative zoom.
+   const distance=reset?fit:resizedDistance(camera.position.distanceTo(controls.target),previous.fit,fit,controls.minDistance,controls.maxDistance);
+   const direction=reset?new THREE.Vector3(mode==='assembly'?-.42:0,mode==='assembly'?.12:0,1):camera.position.clone().sub(controls.target);
+   controls.target.set(0,0,0);
+   camera.near=.001;camera.far=Math.max(30,controls.maxDistance+radius*2);
+   camera.setViewOffset(size.width,size.height,size.width/2-(safe.x+safe.width/2),size.height/2-(safe.y+safe.height/2),size.width,size.height);
+   camera.up.set(0,1,0);
+   const position=direction.normalize().multiplyScalar(distance);
+   controls.enableDamping=false;camera.position.copy(position);camera.lookAt(controls.target);controls.update();
+   camera.position.copy(position);controls.update();controls.saveState();controls.enableDamping=true;
+   framing.current={revision,layout,fit};motion.changedAt=performance.now();invalidate();
+  };
+  frame();
+  const observer=new ResizeObserver(frame);
+  stage.querySelectorAll('.stage-bottom,.canvas-tools,.scene-settings,.material-caption,.scale-caption,.photo-tools').forEach(el=>observer.observe(el));
+  return()=>observer.disconnect();
+ },[format,mode,mounted,construction,resetKey,size.width,size.height,controls,camera,gl,invalidate,motion]);
  useFrame(()=>{controls.update();if(interacting.current)invalidate()});return null;
 }
 function Gallery({wall,format,mode,theme}){
@@ -128,15 +152,15 @@ function Lighting({format}){
  useEffect(()=>{key.current.lookAt(0,0,0);fill.current.lookAt(0,0,0);gl.shadowMap.needsUpdate=true;invalidate()},[format,gl,invalidate]);
  return <><ambientLight intensity={.16}/><rectAreaLight ref={key} color="#fff5e8" intensity={2.6} width={2.4} height={3} position={[-2,.45,3.5]}/><rectAreaLight ref={fill} color="#ecf0fa" intensity={1.3} width={1.3} height={2.8} position={[2.2,.15,2.8]}/><directionalLight color="#fff8ef" position={[-2,.9,4]} intensity={.9} castShadow shadow-mapSize={[2048,2048]} shadow-camera-left={-extent} shadow-camera-right={extent} shadow-camera-top={extent} shadow-camera-bottom={-extent} shadow-camera-near={.5} shadow-camera-far={12} shadow-radius={3} shadow-normalBias={.0002} shadow-bias={-.00002}/></>;
 }
-class Boundary extends Component{state={error:false};static getDerivedStateFromError(){return {error:true}}render(){return this.state.error?this.props.fallback:this.props.children}}
+class Boundary extends Component{state={error:false};componentDidCatch(){this.props.onError?.()}static getDerivedStateFromError(){return {error:true}}render(){return this.state.error?this.props.fallback:this.props.children}}
 function Scene(props){
  const motion=useMemo(()=>({changedAt:performance.now()}),[]);
  const revision=[props.format,props.pattern.id,props.color,props.fabric,props.engraving,props.mode,props.room,props.wall,props.theme,props.selected,props.explode,props.construction].join('|');
- return <Boundary fallback={<div className="poster-fallback"><div dangerouslySetInnerHTML={{__html:props.pattern.svg}}/><p>3D недоступно в этом браузере.</p></div>}><Canvas frameloop="demand" dpr={window.innerWidth<800?Math.min(2,Math.max(1.5,window.devicePixelRatio||1)):1.5} shadows={{type:THREE.PCFSoftShadowMap}} camera={{position:[0,0,1.5],fov:34,near:.015,far:30}} gl={{antialias:true,alpha:true,powerPreference:'high-performance',toneMapping:THREE.ACESFilmicToneMapping,toneMappingExposure:1}} onPointerMissed={()=>props.onSelect(null)}>
+ return <Boundary onError={props.onSceneError} fallback={<div className="poster-fallback"><div dangerouslySetInnerHTML={{__html:props.construction==='folded'?props.pattern.folded.svg:props.pattern.svg}}/><p>3D недоступно в этом браузере.</p></div>}><Canvas frameloop="demand" dpr={window.innerWidth<800?Math.min(2,Math.max(1.5,window.devicePixelRatio||1)):1.5} shadows={{type:THREE.PCFSoftShadowMap}} camera={{position:[0,0,1.5],fov:34,near:.001,far:30}} gl={{antialias:true,alpha:true,powerPreference:'high-performance',toneMapping:THREE.ACESFilmicToneMapping,toneMappingExposure:1}} onPointerMissed={()=>props.onSelect(null)}>
  <Environment room={props.room} theme={props.theme}/><Lighting format={props.format} room={props.room}/><Gallery {...props}/>
  {props.mode==='detail'?<MaterialStudy {...props}/>:<Model {...props} motion={motion}/>}
- <Controls key={props.mode+props.wall+props.resetKey} format={props.format} mode={props.mode} wall={props.wall} resetKey={props.resetKey} motion={motion}/>
- <RenderEngine photo={props.photo&&props.construction!=='folded'} revision={revision} motion={motion} onPhotoStatus={props.onPhotoStatus} onStats={props.onStats} benchmark={props.benchmark} room={props.room} artwork={props}/>
+ <Controls format={props.format} mode={props.mode} wall={props.wall} construction={props.construction} resetKey={props.resetKey} motion={motion}/>
+ <RenderEngine photo={props.photo} revision={revision} motion={motion} onPhotoStatus={props.onPhotoStatus} onStats={props.onStats} benchmark={props.benchmark} room={props.room} artwork={props}/>
  </Canvas></Boundary>
 }
 export default React.memo(Scene);

@@ -7,15 +7,15 @@ export default function RenderEngine({photo,revision,motion,onPhotoStatus,onStat
  const engine=useRef(null),ready=useRef(false),ticket=useRef(0),timer=useRef(),lastStatus=useRef('');
  const measure=useRef({frames:0,last:performance.now(),times:[],cpu:[],result:'',test:null});
  const status=text=>{if(lastStatus.current!==text){lastStatus.current=text;onPhotoStatus(text)}};
- const small=size.width<500,maxSamples=small?192:256;
+ const small=size.width<500,maxSamples=small?64:96;
  useEffect(()=>{gl.info.autoReset=false;gl.shadowMap.autoUpdate=false;gl.shadowMap.needsUpdate=true},[gl]);
  useEffect(()=>{gl.shadowMap.needsUpdate=true;motion.changedAt=performance.now();invalidate()},[revision,gl,invalidate,motion]);
  useEffect(()=>{
   const id=++ticket.current;ready.current=false;clearTimeout(timer.current);
-  if(!photo){status('');invalidate();return}
+  if(!photo){engine.current?.dispose();engine.current=null;status('');invalidate();return}
   if(!gl.extensions.has('EXT_color_buffer_float')){status('Быстрый рендер · фоторежим недоступен');return}
   status('Подготавливаем свет…');
-  import('./PhotoRenderer').then(async({PhotoRenderer})=>{if(ticket.current!==id)return;engine.current ||=new PhotoRenderer(gl,camera);await engine.current.configure(artwork,camera,()=>ticket.current===id);if(ticket.current!==id)return;ready.current=true;invalidate()}).catch(error=>{status('Быстрый рендер · фоторежим не прошёл проверку');console.warn('Photo renderer:',error.message)});
+  import('./PhotoRenderer').then(async({PhotoRenderer})=>{if(ticket.current!==id)return;engine.current ||=new PhotoRenderer(gl,camera);await engine.current.configure(artwork,camera,()=>ticket.current===id,scene);if(ticket.current!==id)return;ready.current=true;invalidate()}).catch(error=>{status('Быстрый рендер · фоторежим не прошёл проверку');console.warn('Photo renderer:',error.message)});
  },[photo,revision,gl,camera,invalidate]);
  useEffect(()=>()=>{++ticket.current;clearTimeout(timer.current);engine.current?.dispose();raster.dispose()},[]);
  useEffect(()=>{engine.current?.updateCamera();invalidate()},[size.width,size.height,invalidate]);
@@ -40,9 +40,9 @@ export default function RenderEngine({photo,revision,motion,onPhotoStatus,onStat
   try{
    if(photo&&pt&&ready.current&&!s.test){
     if(moving){raster.render(scene,camera);pt.updateCamera();clearTimeout(timer.current);timer.current=setTimeout(invalidate,280);status('Двигайте камеру · свет уточнится после остановки')}
-    else{pt.renderSample();const count=Math.min(maxSamples,pt.samples);status(count>=maxSamples?'Свет рассчитан':'Уточняем свет · '+count+' / '+maxSamples);if(pt.samples<maxSamples&&!document.hidden)invalidate()}
+    else{if(!pt.renderSample())raster.render(scene,camera);const count=Math.min(maxSamples,Math.floor(pt.samples));status(count>=maxSamples?'Свет рассчитан':'Уточняем свет · '+count+' / '+maxSamples);if(pt.samples<maxSamples&&!document.hidden)invalidate()}
    }else raster.render(scene,camera);
-  }catch(error){ready.current=false;status('Быстрый рендер · фоторежим не прошёл проверку');raster.render(scene,camera);console.warn('Photo renderer:',error.message)}
+  }catch(error){ready.current=false;engine.current?.dispose();engine.current=null;status('Быстрый рендер · фоторежим не прошёл проверку');raster.render(scene,camera);console.warn('Photo renderer:',error.message)}
   s.frames++;const cpu=performance.now()-start;
   if(s.test&&now-s.test.start>1000){s.test.cpu.push(cpu);s.test.calls=gl.info.render.calls;s.test.triangles=gl.info.render.triangles;}
   if(moving&&!s.test&&!photo){if(s.times.length&&now-s.times[s.times.length-1]>200)s.times=[];s.times.push(now);if(s.times.length>50){const span=now-s.times[0];if(span/49>40&&gl.getPixelRatio()>1.5){setDpr(Math.max(1.5,gl.getPixelRatio()*.85));s.times=[]}else s.times.shift()}}

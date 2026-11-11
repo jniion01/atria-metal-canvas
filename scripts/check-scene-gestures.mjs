@@ -2,12 +2,13 @@ import assert from 'node:assert/strict';
 import {PerspectiveCamera,TOUCH} from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {bindSceneGestures} from '../src/sceneGestures.js';
+import {inspectionDistance} from '../src/viewFraming.js';
 
 // Native event fixtures exercise the boundary and the installed OrbitControls
 // pointer handlers. This is not a physical Safari/viewport-zoom test.
 const surface=new EventTarget(),outside=new EventTarget(),root=new EventTarget();
 class CanvasFixture extends EventTarget {
- style={};clientWidth=390;clientHeight=648;
+ style={};clientWidth=390;clientHeight=648;ownerDocument=root;
  getRootNode(){return root}
  setPointerCapture(){}
  releasePointerCapture(){}
@@ -39,7 +40,8 @@ for(let i=0;i<3;i++){
  assert.equal(canvas.style.touchAction,'none');
 }
 controls.enablePan=false;controls.touches.TWO=TOUCH.DOLLY_PAN;
-const send=(type,id,x)=>canvas.dispatchEvent(event(type,{pointerId:id,pointerType:'touch',pageX:x,pageY:300,clientX:x,clientY:300,button:0}));
+controls.minDistance=inspectionDistance('a3','object');
+const send=(type,id,x)=>(type==='pointerdown'?canvas:root).dispatchEvent(event(type,{pointerId:id,pointerType:'touch',pageX:x,pageY:300,clientX:x,clientY:300,button:0}));
 const initial=camera.position.distanceTo(controls.target);
 send('pointerdown',1,150);send('pointerdown',2,250);
 send('pointermove',1,100);send('pointermove',2,300);
@@ -47,5 +49,16 @@ assert.ok(camera.position.distanceTo(controls.target)<initial,'spread must zoom 
 assert.deepEqual(controls.target.toArray(),[0,0,0],'two-finger translation must not pan the center');
 send('pointermove',1,150);send('pointermove',2,250);
 assert.ok(Math.abs(camera.position.distanceTo(controls.target)-initial)<1e-8,'reverse pinch restores model distance');
-send('pointerup',1,150);send('pointerup',2,250);controls.dispose();
+send('pointerup',1,150);send('pointerup',2,250);
+// Repeated real OrbitControls pinches must reach engraving distance, not stop
+// at a whole-object framing radius. There must still be a safe lower limit.
+for(let i=0;i<7;i++){
+ send('pointerdown',1,170);send('pointerdown',2,220);
+ send('pointermove',1,50);send('pointermove',2,340);
+ send('pointerup',1,50);send('pointerup',2,340);
+}
+assert.ok(camera.position.distanceTo(controls.target)<.07,'engraving is reachable');
+assert.ok(camera.position.distanceTo(controls.target)>=.065-1e-8,'minimum clearance retained');
+assert.deepEqual(controls.target.toArray(),[0,0,0],'close inspection never shifts the orbit axis');
+controls.dispose();
 console.log('PASS: scoped native pinch prevention; outside gestures; pointer delivery; cleanup; reset/reconnect touchAction; two-finger model zoom in/out; fixed orbit center.');

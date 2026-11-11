@@ -1,5 +1,8 @@
 import React from 'react';
 const paths={
+ ar:'M3 8V3h5m8 0h5v5m0 8v5h-5M8 21H3v-5m9-10 5 3v6l-5 3-5-3V9zM7 9l5 3 5-3m-5 3v6',
+ expand:'M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5',
+ collapse:'M3 8h5V3m8 0v5h5M8 21v-5H3m18 0h-5v5',
  arrow:'M5 19 19 5M5 5h14v14',
  up:'M12 20V4M5 11l7-7 7 7',
  compare:'M3 8h18m-4-4 4 4-4 4M21 16H3m4-4-4 4 4 4',

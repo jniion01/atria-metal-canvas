@@ -1,0 +1,20 @@
+import assert from 'node:assert/strict';
+import {isAppleMobile,quickLookURL,observeARAvailability} from '../src/arPlatform.js';
+assert.ok(isAppleMobile({userAgent:'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X)',platform:'iPhone',maxTouchPoints:5}));
+assert.ok(isAppleMobile({userAgent:'Macintosh',platform:'MacIntel',maxTouchPoints:5}));
+assert.equal(isAppleMobile({userAgent:'Macintosh',platform:'MacIntel',maxTouchPoints:0}),false);
+assert.equal(quickLookURL('blob:example'),'blob:example#allowsContentScaling=0');
+const viewer=new EventTarget(),doc=new EventTarget(),states=[];
+viewer.loaded=false;viewer.canActivateAR=false;
+const dispose=observeARAvailability(viewer,state=>states.push(state),doc);
+viewer.loaded=true;viewer.dispatchEvent(new Event('load'));
+assert.deepEqual(states.at(-1),{ready:true,supported:false});
+// Regression: support resolves AFTER load with no new load event.
+viewer.canActivateAR=true;
+await new Promise(resolve=>setTimeout(resolve,360));
+assert.deepEqual(states.at(-1),{ready:true,supported:true});
+dispose();const count=states.length;
+viewer.dispatchEvent(new Event('load'));doc.dispatchEvent(new Event('visibilitychange'));
+await new Promise(resolve=>setTimeout(resolve,350));
+assert.equal(states.length,count,'availability polling and listeners cleaned up on close');
+console.log('PASS: iPhone/iPad route; fixed native scale; late AR support readiness; cleanup.');

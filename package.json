@@ -6,19 +6,25 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 5175",
     "build": "node scripts/generate-cutouts.mjs && vite build",
+    "postbuild": "node scripts/check-pages-build.mjs",
     "preview": "vite preview --host 127.0.0.1 --port 5175",
-    "test": "node scripts/check-scale.mjs && node scripts/check-sheet.mjs && node scripts/check-scene-gestures.mjs && node scripts/check-folded.mjs"
+    "test": "node scripts/check-scale.mjs && node scripts/check-sheet.mjs && node scripts/check-scene-gestures.mjs && node scripts/check-folded.mjs && node scripts/check-viewport.mjs && node scripts/check-ar-launch.mjs && node --import tsx scripts/check-ar-export.tsx"
   },
   "dependencies": {
+    "@google/model-viewer": "4.4.0",
     "@react-three/fiber": "9.8.2",
+    "polygon-clipping": "0.15.7",
     "react": "19.3.1",
     "react-dom": "19.3.1",
-    "three": "0.175.0",
-    "polygon-clipping": "0.15.7"
+    "three": "0.183.2",
+    "three-gpu-pathtracer": "0.0.24"
   },
   "devDependencies": {
-    "vite": "6.4.4",
-    "@xmldom/xmldom": "0.9.12"
+    "@napi-rs/canvas": "1.1.0",
+    "@react-three/test-renderer": "9.1.1",
+    "@xmldom/xmldom": "0.9.12",
+    "tsx": "4.21.0",
+    "vite": "6.4.4"
   },
   "engines": {
     "node": ">=20.18.0"
