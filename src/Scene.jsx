@@ -11,6 +11,7 @@ import {createFoldedGeometry,foldedAssembly} from './foldedGeometry';
 RectAreaLightUniformsLib.init();
 import {dimensions} from './dimensions';
 import {viewRadius,fitDistance,safeView,inspectionDistance,resizedDistance} from './viewFraming';
+import {LampModel} from './Lamp';
 import {getMetalMaps,getFabricMaps,getStudioEnvironment,getPlaster} from './textures';
 
 function Environment({room,theme}){
@@ -133,7 +134,7 @@ function Controls({format,resetKey,mode,wall,motion,construction}){
  useFrame(()=>{controls.update();if(interacting.current)invalidate()});return null;
 }
 function Gallery({wall,format,mode,theme}){
- const {width:w,height:h}=dimensions[format],depth=format==='large'?.04:.024,z=-depth-.026,dark=theme==='dark',plaster=getPlaster();
+ const {width:w,height:h}=dimensions[format],depth=format==='large'?.04:.024,z=format==='lamp'?-.074:-depth-.026,dark=theme==='dark',plaster=getPlaster();
  if(!wall||mode!=='object')return null;
  const gap=h*.11,mw=w+gap*2,mh=h+gap*2,trim=Math.max(.006,h*.009),base=-h*.76;
  const mat=<meshStandardMaterial color={dark?'#66685f':'#d4d0c6'} roughness={.82}/>;
@@ -148,9 +149,9 @@ function Gallery({wall,format,mode,theme}){
  </group>;
 }
 function Lighting({format}){
- const key=useRef(),fill=useRef(),{invalidate,gl}=useThree();const extent=format==='large'?1.55:.5;
+ const key=useRef(),fill=useRef(),{invalidate,gl}=useThree();const extent=format==='large'?1.55:format==='lamp'?.8:.5,dim=format==='lamp'?.55:1;
  useEffect(()=>{key.current.lookAt(0,0,0);fill.current.lookAt(0,0,0);gl.shadowMap.needsUpdate=true;invalidate()},[format,gl,invalidate]);
- return <><ambientLight intensity={.16}/><rectAreaLight ref={key} color="#fff5e8" intensity={2.6} width={2.4} height={3} position={[-2,.45,3.5]}/><rectAreaLight ref={fill} color="#ecf0fa" intensity={1.3} width={1.3} height={2.8} position={[2.2,.15,2.8]}/><directionalLight color="#fff8ef" position={[-2,.9,4]} intensity={.9} castShadow shadow-mapSize={[2048,2048]} shadow-camera-left={-extent} shadow-camera-right={extent} shadow-camera-top={extent} shadow-camera-bottom={-extent} shadow-camera-near={.5} shadow-camera-far={12} shadow-radius={3} shadow-normalBias={.0002} shadow-bias={-.00002}/></>;
+ return <><ambientLight intensity={.16*dim}/><rectAreaLight ref={key} color="#fff5e8" intensity={2.6*dim} width={2.4} height={3} position={[-2,.45,3.5]}/><rectAreaLight ref={fill} color="#ecf0fa" intensity={1.3*dim} width={1.3} height={2.8} position={[2.2,.15,2.8]}/><directionalLight color="#fff8ef" position={[-2,.9,4]} intensity={.9*dim} castShadow shadow-mapSize={[2048,2048]} shadow-camera-left={-extent} shadow-camera-right={extent} shadow-camera-top={extent} shadow-camera-bottom={-extent} shadow-camera-near={.5} shadow-camera-far={12} shadow-radius={3} shadow-normalBias={.0002} shadow-bias={-.00002}/></>;
 }
 class Boundary extends Component{state={error:false};componentDidCatch(){this.props.onError?.()}static getDerivedStateFromError(){return {error:true}}render(){return this.state.error?this.props.fallback:this.props.children}}
 function Scene(props){
@@ -158,7 +159,7 @@ function Scene(props){
  const revision=[props.format,props.pattern.id,props.color,props.fabric,props.engraving,props.mode,props.room,props.wall,props.theme,props.selected,props.explode,props.construction].join('|');
  return <Boundary onError={props.onSceneError} fallback={<div className="poster-fallback"><div dangerouslySetInnerHTML={{__html:props.construction==='folded'?props.pattern.folded.svg:props.pattern.svg}}/><p>3D недоступно в этом браузере.</p></div>}><Canvas frameloop="demand" dpr={window.innerWidth<800?Math.min(2,Math.max(1.5,window.devicePixelRatio||1)):1.5} shadows={{type:THREE.PCFSoftShadowMap}} camera={{position:[0,0,1.5],fov:34,near:.001,far:30}} gl={{antialias:true,alpha:true,powerPreference:'high-performance',toneMapping:THREE.ACESFilmicToneMapping,toneMappingExposure:1}} onPointerMissed={()=>props.onSelect(null)}>
  <Environment room={props.room} theme={props.theme}/><Lighting format={props.format} room={props.room}/><Gallery {...props}/>
- {props.mode==='detail'?<MaterialStudy {...props}/>:<Model {...props} motion={motion}/>}
+ {props.construction==='lamp'?<LampModel {...props} motion={motion}/>:props.mode==='detail'?<MaterialStudy {...props}/>:<Model {...props} motion={motion}/>}
  <Controls format={props.format} mode={props.mode} wall={props.wall} construction={props.construction} resetKey={props.resetKey} motion={motion}/>
  <RenderEngine photo={props.photo} revision={revision} motion={motion} onPhotoStatus={props.onPhotoStatus} onStats={props.onStats} benchmark={props.benchmark} room={props.room} artwork={props}/>
  </Canvas></Boundary>

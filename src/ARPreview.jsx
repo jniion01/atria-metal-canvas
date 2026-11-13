@@ -12,7 +12,8 @@ const nativeIcon='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://ww
 
 export default function ARPreview({modelSource,modelProps,config,onClose,onFormatChange,unavailable}){
  const viewer=useRef(),dialog=useRef();
- const initialFormat=useRef(config.format==='large'?'large':'a3').current,buildProps=useRef(modelProps).current,urls=useRef([]);
+ const single=config.construction==='lamp';
+ const initialFormat=useRef(single?'lamp':config.format==='large'?'large':'a3').current,buildProps=useRef(modelProps).current,urls=useRef([]);
  const [assets,setAssets]=useState({}),[size,setSize]=useState(initialFormat),[sizeError,setSizeError]=useState(false),asset=assets[size];
  const [ready,setReady]=useState(false),[supported,setSupported]=useState(false);
  const [status,setStatus]=useState(()=>needsARReload?'failed':'not-presenting'),[error,setError]=useState('');
@@ -63,7 +64,7 @@ export default function ARPreview({modelSource,modelProps,config,onClose,onForma
 
  const failed=status==='failed';
  const choose=format=>{if(!assets[format]||format===size)return;setSize(format);onFormatChange?.(format)};
- const sizeSwitch=extra=><div className={'ar-size'+(extra?' '+extra:'')} role="group" aria-label="Размер картины">{sizes.map(([id,label])=><button key={id} type="button" aria-pressed={size===id} className={size===id?'active':''} disabled={!assets[id]} onClick={()=>choose(id)}>{label}{!assets[id]&&!sizeError&&<span className="ar-spinner" aria-hidden="true"/>}</button>)}</div>;
+ const sizeSwitch=extra=>single?null:<div className={'ar-size'+(extra?' '+extra:'')} role="group" aria-label="Размер картины">{sizes.map(([id,label])=><button key={id} type="button" aria-pressed={size===id} className={size===id?'active':''} disabled={!assets[id]} onClick={()=>choose(id)}>{label}{!assets[id]&&!sizeError&&<span className="ar-spinner" aria-hidden="true"/>}</button>)}</div>;
  const blocked=!ios&&!supported&&capability!=='checking'&&capability!=='supported';
  const launch=()=>{
   // Do not await export or capability checks here: WebXR requires the original tap.
@@ -84,8 +85,8 @@ export default function ARPreview({modelSource,modelProps,config,onClose,onForma
   </model-viewer>:<div className="ar-loading" role="status">{error?'Модель недоступна':<><span className="ar-spinner"/>Подготавливаем вашу конфигурацию…</>}</div>}</div>
   <div className="ar-info">
    {sizeSwitch()}
-   <div className="ar-dimensions"><span>Изображение · {sizes.find(s=>s[0]===size)[2]}</span>{asset&&<span>Снаружи · {(asset.size[0]*100).toFixed(1)} × {(asset.size[1]*100).toFixed(1)} см</span>}</div>
-   <p>{ios?'В Quick Look выберите «AR» и направьте камеру на стену. Дождитесь распознавания поверхности, затем сдвиньте картину в нужное место.':'Наведите камеру на стену и медленно перемещайте телефон. После размещения картину можно двигать одним пальцем, а размер — менять кнопками внизу экрана.'}</p>
+   <div className="ar-dimensions"><span>{single?'Ночник · 30 × 100 × 7 см':'Изображение · '+sizes.find(s=>s[0]===size)[2]}</span>{asset&&<span>Снаружи · {(asset.size[0]*100).toFixed(1)} × {(asset.size[1]*100).toFixed(1)} см</span>}</div>
+   <p>{ios?'В Quick Look выберите «AR» и направьте камеру на стену. Дождитесь распознавания поверхности, затем сдвиньте картину в нужное место.':'Наведите камеру на стену и медленно перемещайте телефон. После размещения объект можно двигать одним пальцем'+(single?'.':', а размер — менять кнопками внизу экрана.')}</p>
    <p className="ar-note">Нужны свет и заметная фактура стены. Размер зафиксирован; точность привязки зависит от камеры и отслеживания.</p>
    {error&&<p role="alert" className="ar-error">{error}</p>}
    {failed&&<p role="alert" className="ar-error">Не удалось включить камеру. Проверьте разрешения камеры и AR в настройках сайта. После отказа нужен новый запуск страницы.</p>}

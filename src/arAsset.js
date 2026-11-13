@@ -5,10 +5,12 @@ import {USDZExporter} from 'three/addons/exporters/USDZExporter.js';
 export async function createARAsset(source,{quickLook=false}={}){
  const root=source.clone(true),ownedGeometries=new Set(),ownedMaterials=new Set();
  root.position.set(0,0,0);root.rotation.set(0,0,0);root.scale.set(1,1,1);
+ // Screen-only effects (additive bloom) have no glTF/USDZ equivalent.
+ const skipped=[];root.traverse(o=>{if(o.userData.arSkip)skipped.push(o)});skipped.forEach(o=>o.removeFromParent());
  root.traverse(o=>{
   if(!o.isMesh)return;
   o.geometry=o.geometry.clone();ownedGeometries.add(o.geometry);
-  const copy=m=>{const n=m.clone();n.emissive?.set(0);n.emissiveIntensity=0;n.side=FrontSide;ownedMaterials.add(n);return n};
+  const copy=m=>{const n=m.clone();if(!m.userData.glow){n.emissive?.set(0);n.emissiveIntensity=0}n.side=FrontSide;ownedMaterials.add(n);return n};
   o.material=Array.isArray(o.material)?o.material.map(copy):copy(o.material);
   o.userData={};
  });

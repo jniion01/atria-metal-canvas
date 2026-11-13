@@ -42,6 +42,7 @@ const scenarios=[
  {name:'android-capability-timeout',ua:android,mode:'timeout'},
  {name:'iphone-safari-route',ua:iphone,mode:'native',platform:'iPhone',width:390,height:844},
  {name:'iphone-chrome-route',ua:iphone.replace('Version/18.6','CriOS/131.0.0.0'),mode:'native',platform:'iPhone',folded:true,width:390,height:844},
+ {name:'iphone-night-light',ua:iphone,mode:'native',platform:'iPhone',lamp:true,width:390,height:844},
  {name:'ipad-desktop-ua-route',ua:'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Safari/605.1.15',mode:'native',platform:'MacIntel',width:820,height:1180},
  {name:'desktop-no-xr',ua:'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131.0.0.0 Safari/537.36',mode:'no-api',width:1440,height:900,desktop:true}
 ];
@@ -70,7 +71,7 @@ try{
     requestSession:async(type,options)=>{window.__xrCalls.push({type,options,activation:navigator.userActivation.isActive});throw new DOMException('QA: user declined permission','NotAllowedError')}
    })});
   `});
-  const config={format:s.folded?'large':'a3',construction:s.folded?'folded':'profile',pattern:s.folded?'11':'04',fabric:'linen',background:'ultramarine',engraving:'ascii'};
+  const config={format:s.folded?'large':'a3',construction:s.lamp?'lamp':s.folded?'folded':'profile',pattern:s.folded?'11':'04',fabric:'linen',background:'ultramarine',engraving:'ascii'};
   await send('Page.navigate',{url:origin+prefix+'?view='+encodeURIComponent(JSON.stringify(config))});
   await until('!!document.querySelector(".scene canvas")');await wait(500);
   await evaluate('document.querySelector(".canvas-tools button").click()');
@@ -78,12 +79,15 @@ try{
    await until('!!document.querySelector("a[rel=ar]")');
    const native=await evaluate(`(async()=>{const a=document.querySelector('a[rel=ar]'),response=await fetch(a.href.split('#')[0]),bytes=new Uint8Array(await response.arrayBuffer());return {href:a.href,type:response.headers.get('content-type'),bytes:bytes.length,zip:bytes[0]===80&&bytes[1]===75,child:a.firstElementChild.tagName,count:a.children.length,secondViewer:!!document.querySelector('model-viewer')}})()`);
    assert.ok(native.zip&&native.bytes>10000);assert.match(native.type,/usdz/);assert.ok(native.href.endsWith('#allowsContentScaling=0'));assert.equal(native.child,'IMG');assert.equal(native.count,1);assert.equal(native.secondViewer,false);
+   if(s.lamp)assert.equal(await evaluate('!!document.querySelector(".ar-size")'),false,'night light has one size');
+   else{
    await until('[...document.querySelectorAll(".ar-size button")].every(b=>!b.disabled)');
    const firstHref=await evaluate('document.querySelector("a[rel=ar]").href');
    await evaluate('document.querySelector(".ar-size button:not(.active)").click()');
    await until(`document.querySelector("a[rel=ar]").href!==${JSON.stringify(firstHref)}`);
    const second=await evaluate(`(async()=>{const a=document.querySelector('a[rel=ar]');const b=new Uint8Array(await (await fetch(a.href.split('#')[0])).arrayBuffer());return {zip:b[0]===80&&b[1]===75,bytes:b.length,child:a.firstElementChild.tagName,hash:a.href.endsWith('#allowsContentScaling=0')}})()`);
    assert.ok(second.zip&&second.bytes>10000&&second.child==='IMG'&&second.hash,'other size USDZ ready for Quick Look');
+   }
    results.push({scenario:s.name,passed:true,route:'USDZ Quick Look link',bytes:native.bytes});
   }else if(s.mode==='supported'){
    await until('document.querySelector("model-viewer")?.loaded && document.querySelector(".ar-launch")?.disabled===false');

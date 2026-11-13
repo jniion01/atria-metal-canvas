@@ -99,3 +99,4 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[role=button]:focus-v
 .ar-size-live{display:none}
 model-viewer[ar-status="session-started"] .ar-size-live,model-viewer[ar-status="object-placed"] .ar-size-live{position:absolute;display:grid;left:50%;transform:translateX(-50%);bottom:max(28px,calc(env(safe-area-inset-bottom) + 16px));width:min(280px,calc(100% - 40px));margin:0;background:#f8f8f5;border-color:#fff;color:#20211f;box-shadow:0 6px 24px #0003}
 .ar-size-live button{color:#20211f}.ar-size-live button.active{background:#20211f;color:#f8f8f5}
+.construction-options .construction-lamp{grid-column:1/-1}.lamp-note{font-size:12px;line-height:1.6;color:var(--muted);margin:0}

@@ -2,6 +2,7 @@
 export const dimensions = {
  a3:{width:.297,height:.420,metal:.002,label:'297 × 420 мм'},
  large:{width:1,height:1.5,metal:.003,label:'1000 × 1500 мм'},
+ lamp:{width:.3,height:1,metal:.002,depth:.07,label:'300 × 1000 × 70 мм'},
 };
 export function cameraDistance(format,mode,aspect=1){
  const d=dimensions[format];
