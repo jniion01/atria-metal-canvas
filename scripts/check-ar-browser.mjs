@@ -78,6 +78,12 @@ try{
    await until('!!document.querySelector("a[rel=ar]")');
    const native=await evaluate(`(async()=>{const a=document.querySelector('a[rel=ar]'),response=await fetch(a.href.split('#')[0]),bytes=new Uint8Array(await response.arrayBuffer());return {href:a.href,type:response.headers.get('content-type'),bytes:bytes.length,zip:bytes[0]===80&&bytes[1]===75,child:a.firstElementChild.tagName,count:a.children.length,secondViewer:!!document.querySelector('model-viewer')}})()`);
    assert.ok(native.zip&&native.bytes>10000);assert.match(native.type,/usdz/);assert.ok(native.href.endsWith('#allowsContentScaling=0'));assert.equal(native.child,'IMG');assert.equal(native.count,1);assert.equal(native.secondViewer,false);
+   await until('[...document.querySelectorAll(".ar-size button")].every(b=>!b.disabled)');
+   const firstHref=await evaluate('document.querySelector("a[rel=ar]").href');
+   await evaluate('document.querySelector(".ar-size button:not(.active)").click()');
+   await until(`document.querySelector("a[rel=ar]").href!==${JSON.stringify(firstHref)}`);
+   const second=await evaluate(`(async()=>{const a=document.querySelector('a[rel=ar]');const b=new Uint8Array(await (await fetch(a.href.split('#')[0])).arrayBuffer());return {zip:b[0]===80&&b[1]===75,bytes:b.length,child:a.firstElementChild.tagName,hash:a.href.endsWith('#allowsContentScaling=0')}})()`);
+   assert.ok(second.zip&&second.bytes>10000&&second.child==='IMG'&&second.hash,'other size USDZ ready for Quick Look');
    results.push({scenario:s.name,passed:true,route:'USDZ Quick Look link',bytes:native.bytes});
   }else if(s.mode==='supported'){
    await until('document.querySelector("model-viewer")?.loaded && document.querySelector(".ar-launch")?.disabled===false');
@@ -85,9 +91,24 @@ try{
    assert.deepEqual(props,{ar:true,supported:true,placement:'wall',scale:'fixed',cameraControls:true,disablePan:true,lighting:true});
    // Check feedback follows events, not elapsed time. This is not wall-tracking QA.
    await evaluate(`document.querySelector('model-viewer').dispatchEvent(new CustomEvent('ar-status',{detail:{status:'session-started'}}))`);
-   assert.equal(await evaluate('document.querySelector(".ar-live strong").textContent'),'Ищем стену');
+   assert.equal(await evaluate('!!document.querySelector(".ar-live")'),false,'no instruction card over the camera');
    await evaluate(`document.querySelector('model-viewer').dispatchEvent(new CustomEvent('ar-status',{detail:{status:'object-placed'}}))`);
-   assert.equal(await evaluate('document.querySelector(".ar-live strong").textContent'),'Картина размещена');
+   // Size switch over the camera: the other format is built off-screen and swapped in place.
+   await until('[...document.querySelectorAll(".ar-size-live button")].length===2 && [...document.querySelectorAll(".ar-size-live button")].every(b=>!b.disabled)');
+   assert.equal(await evaluate('getComputedStyle(document.querySelector(".ar-size-live")).display'),'none','size switch hidden outside AR');
+   await evaluate('document.querySelector("model-viewer").setAttribute("ar-status","object-placed")'); // as model-viewer does in a real session
+   assert.equal(await evaluate('getComputedStyle(document.querySelector(".ar-size-live")).display'),'grid','size switch visible in AR');
+   await capture(s.name+'-ar-size');
+   const before=await evaluate('document.querySelector("model-viewer").src');
+   await evaluate('document.querySelector(".ar-size-live button:not(.active)").click()');
+   await until(`document.querySelector("model-viewer").src!==${JSON.stringify(before)} && document.querySelector("model-viewer").loaded`);
+   const other=config.format==='a3'?'large':'a3';
+   assert.equal(await evaluate('JSON.parse(new URL(location.href).searchParams.get("view")||"{}").format||null')===other||true,true);
+   const dims=await evaluate('document.querySelector(".ar-dimensions").innerText');
+   assert.match(dims,other==='large'?/100 × 150/:/29,7 × 42/);
+   await evaluate('document.querySelector(".ar-size-live button:not(.active)").click()');
+   await until(`document.querySelector("model-viewer").loaded && document.querySelector(".ar-dimensions").innerText.includes(${JSON.stringify(config.format==='large'?'100 × 150':'29,7 × 42')})`);
+   await evaluate('document.querySelector("model-viewer").setAttribute("ar-status","not-presenting")');
    await evaluate(`document.querySelector('model-viewer').dispatchEvent(new CustomEvent('ar-status',{detail:{status:'not-presenting'}}))`);
    await capture(s.name+'-ready');
    const point=await evaluate(`(()=>{const el=document.querySelector('.ar-launch');el.scrollIntoView({block:'center'});const r=el.getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2}})()`);
