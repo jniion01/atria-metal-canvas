@@ -22,6 +22,7 @@ export function drawPatternEngraving(ctx, patternId='04', style='ascii', {ink='#
   '09':{x:147,y:170,w:6,h:80,code:'[ ]',tx:146,ty:214,sx:145,sy:294},
   '11':{x:35,y:62,w:24,h:36,code:'[ void ]',tx:35,ty:112,sx:231,sy:325},
   '10':{x:146,y:229,w:30,h:67,code:'<duo>',tx:142,ty:303,sx:88,sy:181},
+  '12':{x:52,y:160,w:34,h:18,code:'<bat>',tx:202,ty:188,sx:139,sy:224},
  };
  const a=layouts[id]||layouts['04'];
  if(style==='pixels'){
