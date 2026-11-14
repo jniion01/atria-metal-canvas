@@ -20,6 +20,12 @@ export function inspectionDistance(format,mode){
  if(mode==='assembly')return format==='large'?.20:.08;
  return format==='large'?.09:.065;
 }
+// Depth precision falls with far/near. A fixed 1 mm near plane makes layers that
+// sit millimetres apart flicker through each other once the camera pulls back,
+// most visibly on phones. Keep the near plane just in front of the model instead.
+export function nearPlane(distance,radius){
+ return Math.max(.001,Math.min(distance*.5,(distance-radius)*.7));
+}
 export function resizedDistance(distance,previousFit,nextFit,minDistance,maxDistance){
  return Math.max(minDistance,Math.min(maxDistance,distance*nextFit/previousFit));
 }

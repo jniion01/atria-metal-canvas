@@ -2,6 +2,9 @@ import assert from 'node:assert/strict';
 import {PerspectiveCamera,Vector3} from 'three';
 import {viewRadius,fitDistance,safeView,inspectionDistance,resizedDistance} from '../src/viewFraming.js';
 import {arMessage,configurationLink} from '../src/arState.js';
+import {nearPlane} from '../src/viewFraming.js';
+// Close inspection keeps a 1 mm near plane; pulled back, at least 21 bits of the range stay behind the model.
+assert.equal(nearPlane(.065,.27),.001);assert.ok(nearPlane(3,.27)>1.2&&nearPlane(3,.27)<3-.27);assert.ok(nearPlane(.5,.27)<.5-.27);
 let checks=0;
 for(const [width,height] of [[320,440],[390,648],[430,736],[683,860],[800,644],[1366,768]])for(const mode of ['object','detail','assembly','scale'])for(const format of ['a3','large'])for(const folded of [false,true]){
  const safe=safeView(width,height,mode==='detail'?185:145,mode==='assembly'?245:110),r=viewRadius(format,mode,folded),d=fitDistance(r,width,height,safe);

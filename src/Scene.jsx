@@ -10,7 +10,7 @@ import {bindSceneGestures} from './sceneGestures';
 import {createFoldedGeometry,foldedAssembly} from './foldedGeometry';
 RectAreaLightUniformsLib.init();
 import {dimensions} from './dimensions';
-import {viewRadius,fitDistance,safeView,inspectionDistance,resizedDistance} from './viewFraming';
+import {viewRadius,fitDistance,safeView,inspectionDistance,resizedDistance,nearPlane} from './viewFraming';
 import {LampModel} from './Lamp';
 import {getMetalMaps,getFabricMaps,getStudioEnvironment,getPlaster} from './textures';
 
@@ -118,20 +118,25 @@ function Controls({format,resetKey,mode,wall,motion,construction}){
    const distance=reset?fit:resizedDistance(camera.position.distanceTo(controls.target),previous.fit,fit,controls.minDistance,controls.maxDistance);
    const direction=reset?new THREE.Vector3(mode==='assembly'?-.42:0,mode==='assembly'?.12:0,1):camera.position.clone().sub(controls.target);
    controls.target.set(0,0,0);
-   camera.near=.001;camera.far=Math.max(30,controls.maxDistance+radius*2);
+   camera.near=nearPlane(distance,radius);camera.far=Math.max(30,controls.maxDistance+radius*2);
    camera.setViewOffset(size.width,size.height,size.width/2-(safe.x+safe.width/2),size.height/2-(safe.y+safe.height/2),size.width,size.height);
    camera.up.set(0,1,0);
    const position=direction.normalize().multiplyScalar(distance);
    controls.enableDamping=false;camera.position.copy(position);camera.lookAt(controls.target);controls.update();
    camera.position.copy(position);controls.update();controls.saveState();controls.enableDamping=true;
-   framing.current={revision,layout,fit};motion.changedAt=performance.now();invalidate();
+   framing.current={revision,layout,fit,radius};motion.changedAt=performance.now();invalidate();
   };
   frame();
   const observer=new ResizeObserver(frame);
   stage.querySelectorAll('.stage-bottom,.canvas-tools,.scene-settings,.material-caption,.scale-caption,.photo-tools').forEach(el=>observer.observe(el));
   return()=>observer.disconnect();
  },[format,mode,mounted,construction,resetKey,size.width,size.height,controls,camera,gl,invalidate,motion]);
- useFrame(()=>{controls.update();if(interacting.current)invalidate()});return null;
+ useFrame(()=>{
+  controls.update();
+  const radius=framing.current?.radius;
+  if(radius){const near=nearPlane(camera.position.distanceTo(controls.target),radius);if(Math.abs(near-camera.near)>camera.near*.02){camera.near=near;camera.updateProjectionMatrix()}}
+  if(interacting.current)invalidate();
+ });return null;
 }
 function Gallery({wall,format,mode,theme}){
  const {width:w,height:h}=dimensions[format],depth=format==='large'?.04:.024,z=format==='lamp'?-.074:-depth-.026,dark=theme==='dark',plaster=getPlaster();
