@@ -12,7 +12,7 @@ const nativeIcon='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://ww
 
 export default function ARPreview({modelSource,modelProps,config,onClose,onFormatChange,unavailable}){
  const viewer=useRef(),dialog=useRef();
- const single=config.construction==='lamp';
+ const single=config.construction==='lamp'||config.construction==='lamp2';
  const initialFormat=useRef(single?'lamp':config.format==='large'?'large':'a3').current,buildProps=useRef(modelProps).current,urls=useRef([]);
  const [assets,setAssets]=useState({}),[size,setSize]=useState(initialFormat),[sizeError,setSizeError]=useState(false),asset=assets[size];
  const [ready,setReady]=useState(false),[supported,setSupported]=useState(false);

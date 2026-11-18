@@ -5,6 +5,7 @@ export function viewRadius(format,mode,folded=false){
  if(mode==='detail')return .285;
  if(mode==='scale')return Math.hypot(1.12,1.62)/2;
  const rim=folded?(format==='large'?.018:.012):(format==='large'?.04:.03);
+ if(mode==='assembly'&&format==='lamp')return .56;
  if(mode==='assembly')return Math.hypot(w/2+(folded?.085:rim),h/2+(folded?.085:rim),h*.58+.06);
  return Math.hypot(w+rim,h+rim,.09)/2;
 }

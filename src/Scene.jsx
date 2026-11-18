@@ -12,6 +12,7 @@ RectAreaLightUniformsLib.init();
 import {dimensions} from './dimensions';
 import {viewRadius,fitDistance,safeView,inspectionDistance,resizedDistance,nearPlane} from './viewFraming';
 import {LampModel} from './Lamp';
+import {RealLampModel} from './LampReal';
 import {getMetalMaps,getFabricMaps,getStudioEnvironment,getPlaster} from './textures';
 
 function Environment({room,theme}){
@@ -116,7 +117,7 @@ function Controls({format,resetKey,mode,wall,motion,construction}){
    controls.maxDistance=fit*3;
    // Safari toolbars and UI resizing preserve the user's angle and relative zoom.
    const distance=reset?fit:resizedDistance(camera.position.distanceTo(controls.target),previous.fit,fit,controls.minDistance,controls.maxDistance);
-   const direction=reset?new THREE.Vector3(mode==='assembly'?-.42:0,mode==='assembly'?.12:0,1):camera.position.clone().sub(controls.target);
+   const direction=reset?(mode==='assembly'&&construction==='lamp2'?new THREE.Vector3(-1.15,.16,.62):new THREE.Vector3(mode==='assembly'?-.42:0,mode==='assembly'?.12:0,1)):camera.position.clone().sub(controls.target);
    controls.target.set(0,0,0);
    camera.near=nearPlane(distance,radius);camera.far=Math.max(30,controls.maxDistance+radius*2);
    camera.setViewOffset(size.width,size.height,size.width/2-(safe.x+safe.width/2),size.height/2-(safe.y+safe.height/2),size.width,size.height);
@@ -138,8 +139,8 @@ function Controls({format,resetKey,mode,wall,motion,construction}){
   if(interacting.current)invalidate();
  });return null;
 }
-function Gallery({wall,format,mode,theme}){
- const {width:w,height:h}=dimensions[format],depth=format==='large'?.04:.024,z=format==='lamp'?-.074:-depth-.026,dark=theme==='dark',plaster=getPlaster();
+function Gallery({wall,format,mode,theme,construction}){
+ const {width:w,height:h}=dimensions[format],depth=format==='large'?.04:.024,z=format==='lamp'?(construction==='lamp2'?-.0632:-.074):-depth-.026,dark=theme==='dark',plaster=getPlaster();
  if(!wall||mode!=='object')return null;
  const gap=h*.11,mw=w+gap*2,mh=h+gap*2,trim=Math.max(.006,h*.009),base=-h*.76;
  const mat=<meshStandardMaterial color={dark?'#66685f':'#d4d0c6'} roughness={.82}/>;
@@ -164,7 +165,7 @@ function Scene(props){
  const revision=[props.format,props.pattern.id,props.color,props.fabric,props.engraving,props.mode,props.room,props.wall,props.theme,props.selected,props.explode,props.construction].join('|');
  return <Boundary onError={props.onSceneError} fallback={<div className="poster-fallback"><div dangerouslySetInnerHTML={{__html:props.construction==='folded'?props.pattern.folded.svg:props.pattern.svg}}/><p>3D недоступно в этом браузере.</p></div>}><Canvas frameloop="demand" dpr={window.innerWidth<800?Math.min(2,Math.max(1.5,window.devicePixelRatio||1)):1.5} shadows={{type:THREE.PCFSoftShadowMap}} camera={{position:[0,0,1.5],fov:34,near:.001,far:30}} gl={{antialias:true,alpha:true,powerPreference:'high-performance',toneMapping:THREE.ACESFilmicToneMapping,toneMappingExposure:1}} onPointerMissed={()=>props.onSelect(null)}>
  <Environment room={props.room} theme={props.theme}/><Lighting format={props.format} room={props.room}/><Gallery {...props}/>
- {props.construction==='lamp'?<LampModel {...props} motion={motion}/>:props.mode==='detail'?<MaterialStudy {...props}/>:<Model {...props} motion={motion}/>}
+ {props.construction==='lamp2'?<RealLampModel {...props} motion={motion}/>:props.construction==='lamp'?<LampModel {...props} motion={motion}/>:props.mode==='detail'?<MaterialStudy {...props}/>:<Model {...props} motion={motion}/>}
  <Controls format={props.format} mode={props.mode} wall={props.wall} construction={props.construction} resetKey={props.resetKey} motion={motion}/>
  <RenderEngine photo={props.photo} revision={revision} motion={motion} onPhotoStatus={props.onPhotoStatus} onStats={props.onStats} benchmark={props.benchmark} room={props.room} artwork={props}/>
  </Canvas></Boundary>

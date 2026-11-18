@@ -17,13 +17,13 @@ export function starSlit(w,h){
  }
  return p;
 }
-function faceGeometry(w,h,t){
+export function faceGeometry(w,h,t){
  const s=new THREE.Shape();s.moveTo(-w/2,-h/2);s.lineTo(w/2,-h/2);s.lineTo(w/2,h/2);s.lineTo(-w/2,h/2);s.closePath();
  s.holes.push(starSlit(w,h));
  const g=new THREE.ExtrudeGeometry(s,{depth:t,bevelEnabled:false,curveSegments:40});g.translate(0,0,-t);return g;
 }
 // Soft bloom around the slit. Drawn once; shadowBlur works in every browser.
-function glowTexture(w,h){
+export function glowTexture(w,h){
  const scale=512,c=document.createElement('canvas');c.width=Math.round(scale*w/h*2);c.height=scale*2;
  const x=c.getContext('2d'),k=c.height/h;x.fillStyle='#000';x.fillRect(0,0,c.width,c.height);
  const draw=()=>{x.beginPath();const pts=starSlit(w,h).getPoints(40);pts.forEach((p,i)=>x[i?'lineTo':'moveTo'](c.width/2+p.x*k,c.height/2-p.y*k-4000));x.closePath();x.fill()};
