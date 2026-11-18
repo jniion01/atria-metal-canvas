@@ -162,7 +162,7 @@ function Lighting({format}){
 class Boundary extends Component{state={error:false};componentDidCatch(){this.props.onError?.()}static getDerivedStateFromError(){return {error:true}}render(){return this.state.error?this.props.fallback:this.props.children}}
 function Scene(props){
  const motion=useMemo(()=>({changedAt:performance.now()}),[]);
- const revision=[props.format,props.pattern.id,props.color,props.fabric,props.engraving,props.mode,props.room,props.wall,props.theme,props.selected,props.explode,props.construction].join('|');
+ const revision=[props.format,props.pattern.id,props.color,props.fabric,props.engraving,props.mode,props.room,props.wall,props.theme,props.selected,props.explode,props.construction,props.lampLight].join('|');
  return <Boundary onError={props.onSceneError} fallback={<div className="poster-fallback"><div dangerouslySetInnerHTML={{__html:props.construction==='folded'?props.pattern.folded.svg:props.pattern.svg}}/><p>3D недоступно в этом браузере.</p></div>}><Canvas frameloop="demand" dpr={window.innerWidth<800?Math.min(2,Math.max(1.5,window.devicePixelRatio||1)):1.5} shadows={{type:THREE.PCFSoftShadowMap}} camera={{position:[0,0,1.5],fov:34,near:.001,far:30}} gl={{antialias:true,alpha:true,powerPreference:'high-performance',toneMapping:THREE.ACESFilmicToneMapping,toneMappingExposure:1}} onPointerMissed={()=>props.onSelect(null)}>
  <Environment room={props.room} theme={props.theme}/><Lighting format={props.format} room={props.room}/><Gallery {...props}/>
  {props.construction==='lamp2'?<RealLampModel {...props} motion={motion}/>:props.construction==='lamp'?<LampModel {...props} motion={motion}/>:props.mode==='detail'?<MaterialStudy {...props}/>:<Model {...props} motion={motion}/>}
