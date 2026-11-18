@@ -8,8 +8,8 @@ import {lampStages} from './lampStages';
 // and a screwed back cover that carries the light, the power supply and the
 // keyhole hangers. Dimensions follow the engineering drawing, in metres.
 export const L1={t:.0012,acrylic:.003,cover:.001,bump:.004,tabs:[.45,.15,-.15,-.45],tabW:.03,tabD:.013,tabX:.142,
- starX:.045,profile:[.0164,.007],st:[-.43,.47],keyX:.1,keyY:.42,press:[.4,0,-.4],pressX:.115,
- psu:[.15,.04,.03],psuY:-.472,ctrl:[.034,.095,.018],ctrlY:-.3925,cordX:.12,buttonX:-.06,glow:'#8fbcff'};
+ starX:.045,profile:[.0164,.007],st:[-.445,.47],keyX:.1,keyY:.42,press:[.4,0,-.4],pressX:.115,
+ psu:[.15,.04,.03],psuY:-.472,ctrl:[.034,.095,.018],ctrlX:.119,ctrlY:-.3325,cordX:.12,buttonX:-.06,glow:'#8fbcff'};
 function coverGeometry(w,h,t){
  // Outline with the cord notch; holes: 2 keyholes, 8 for the M4 screws, 6 for the acrylic standoffs.
  const s=new THREE.Shape(),n=.0045,x=L1.cordX;
@@ -49,9 +49,9 @@ export function RealLampModel({mode,explode,selected,onSelect,motion,onModelRead
  const tabs=useMemo(()=>({'-1':tabGeometry(-1),'1':tabGeometry(1)}),[]);
  const wires=useMemo(()=>{const x=L1.buttonX,by=-h/2,P=[x,-.452,zc+.03];return {
   pigtail:[[x,by+.02,f-.035],[x,by+.034,f-.04],[x-.004,-.458,zc+.04],P],
-  lead:[P,[x+.012,-.447,zc+.02],[-.03,-.44,zc+.012],[-.012,-.432,zc+.012]],
-  feed:[[.02,L1.psuY+.02,zc+.012],[.024,-.447,zc+.008],[.008,-.436,zc+.01]],
-  left:[[-.012,-.4,zc+.02],[-.03,-.405,zc+.012],[-L1.starX,-.422,zc+.006]],right:[[.012,-.4,zc+.02],[.03,-.405,zc+.012],[L1.starX,-.422,zc+.006]],
+  lead:[P,[-.02,-.449,zc+.014],[.085,-.448,zc+.01],[.112,-.38,zc+.014]],
+  feed:[[.06,L1.psuY+.02,zc+.012],[.1,-.44,zc+.01],[.122,-.38,zc+.012]],
+  left:[[.106,-.372,zc+.016],[.02,-.4495,zc+.008],[-L1.starX,-.44,zc+.006]],right:[[.108,-.365,zc+.016],[.075,-.43,zc+.008],[L1.starX,-.44,zc+.006]],
   cord:[[.075,L1.psuY,zc+.015],[.105,-.474,zc+.012],[L1.cordX,-.481,zc+.006],[L1.cordX,-.496,zc+.002],[L1.cordX,-.512,zc-.0035],[L1.cordX,-.74,zc-.0035]],P}},[h,f,zc]);
  useEffect(()=>()=>{face.dispose();glow.dispose();plate.dispose();tabs['-1'].dispose();tabs['1'].dispose()},[face,glow,plate,tabs]);
  useEffect(()=>{onModelReady?.(()=>root.current?.userData.arReady?root.current:null);return()=>onModelReady?.(null)},[onModelReady]);
@@ -99,7 +99,7 @@ export function RealLampModel({mode,explode,selected,onSelect,motion,onModelRead
   </group>)}</Part></group>
   <group ref={power}><Part id="power" {...pick}>
    <mesh castShadow position={[0,L1.psuY,zc+L1.psu[2]/2]}><boxGeometry args={L1.psu}/><meshStandardMaterial color={on('power')?'#778c83':'#9a9da0'} metalness={.8} roughness={.45}/></mesh>
-   <mesh position={[0,L1.ctrlY,zc+L1.ctrl[2]/2]}><boxGeometry args={L1.ctrl}/><meshStandardMaterial color={on('power')?'#a9c1b7':'#ecece8'} roughness={.6}/></mesh>
+   <mesh position={[L1.ctrlX,L1.ctrlY,zc+L1.ctrl[2]/2]}><boxGeometry args={L1.ctrl}/><meshStandardMaterial color={on('power')?'#a9c1b7':'#ecece8'} roughness={.6}/></mesh>
    <mesh position={[cx,-.481,zc+.0045]}><boxGeometry args={[.012,.01,.009]}/><meshStandardMaterial color="#1c1d1c" roughness={.6}/></mesh>
    <Wire points={wires.cord} color="#ecece8" radius={.0031}/><Wire points={wires.feed} color="#c8322c"/><Wire points={wires.left}/><Wire points={wires.right}/><Wire points={wires.lead} color="#2b2c2b"/>
   </Part></group>
