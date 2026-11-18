@@ -104,7 +104,7 @@ export function RealLampModel({mode,explode,selected,onSelect,motion,onModelRead
    <Wire points={wires.cord} color="#ecece8" radius={.0031}/><Wire points={wires.feed} color="#c8322c"/><Wire points={wires.left}/><Wire points={wires.right}/><Wire points={wires.lead} color="#2b2c2b"/>
   </Part></group>
   <group ref={cover}><Part id="cover" {...pick}>
-   <mesh geometry={plate} dispose={null} position={[0,0,zc-L1.cover]} castShadow receiveShadow><meshStandardMaterial color={on('cover')?'#cfe3da':'#eeeeea'} roughness={.7} side={THREE.DoubleSide}/></mesh>
+   <mesh geometry={plate} dispose={null} position={[0,0,zc-L1.cover]} castShadow receiveShadow><meshStandardMaterial color={on('cover')?'#a9c1b7':'#c4c6c5'} metalness={1} roughness={.45} side={THREE.DoubleSide}/></mesh>
    {L1.press.flatMap(y=>[-1,1].map(s=><group key={`${s}${y}`} position={[s*L1.pressX,y,0]}>
     <mesh position={[0,0,(zc+f-t-L1.acrylic-.008)/2]} rotation={[Math.PI/2,0,0]}><cylinderGeometry args={[.0035,.0035,depth-t-L1.acrylic-.008,12]}/><meshStandardMaterial color="#e6e5df" roughness={.6}/></mesh>
     <mesh position={[0,0,f-t-L1.acrylic-.004]} rotation={[Math.PI/2,0,0]}><cylinderGeometry args={[.005,.005,.008,16]}/><meshStandardMaterial color="#c9ccd0" roughness={.9}/></mesh>
