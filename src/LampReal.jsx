@@ -91,7 +91,7 @@ export function RealLampModel({mode,explode,selected,onSelect,motion,onModelRead
    <Wire points={wires.pigtail} color="#2b2c2b"/><mesh position={[wires.P[0],wires.P[1]+.004,wires.P[2]]}><boxGeometry args={[.008,.009,.006]}/><meshStandardMaterial color="#f1f1ec" roughness={.6}/></mesh>
    <mesh ref={halo} position={[0,0,f+.0006]} userData={{arSkip:true}} renderOrder={3}><planeGeometry args={[w,h]}/><meshBasicMaterial map={glow} transparent blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false}/></mesh>
   </group>
-  <group ref={acrylic}><Part id="diffuser" {...pick}><mesh position={[0,0,f-t-L1.acrylic/2-.0003]}><boxGeometry args={[w-.006,h-.008,L1.acrylic]}/><meshStandardMaterial color={on('diffuser')?'#dff0ea':'#f1f4f8'} roughness={.92} emissive={L1.glow} emissiveIntensity={1.9*lampLight} userData={{glow:true}}/></mesh></Part></group>
+  <group ref={acrylic}><Part id="diffuser" {...pick}><mesh position={[0,0,f-t-L1.acrylic/2-.0003]}><boxGeometry args={[.27,h-.008,L1.acrylic]}/><meshStandardMaterial color={on('diffuser')?'#dff0ea':'#f1f4f8'} roughness={.92} emissive={L1.glow} emissiveIntensity={1.9*lampLight} userData={{glow:true}}/></mesh></Part></group>
   <group ref={light}><Part id="light" {...pick}>{[-1,1].map(s=><group key={s} position={[s*L1.starX,(L1.st[0]+L1.st[1])/2,zc]}>
    <mesh position={[0,0,.00075]}><boxGeometry args={[pw,L1.st[1]-L1.st[0],.0015]}/><Alu on={on('light')}/></mesh>
    {[-1,1].map(d=><mesh key={d} position={[d*(pw/2-.0006),0,ph/2]}><boxGeometry args={[.0012,L1.st[1]-L1.st[0],ph]}/><Alu on={on('light')}/></mesh>)}
