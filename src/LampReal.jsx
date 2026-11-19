@@ -8,8 +8,8 @@ import {lampStages} from './lampStages';
 // and a screwed back cover that carries the light, the power supply and the
 // keyhole hangers. Dimensions follow the engineering drawing, in metres.
 export const L1={t:.0012,acrylic:.003,cover:.001,bump:.004,tabs:[.45,.15,-.15,-.45],tabW:.03,tabD:.013,tabX:.142,
- starX:.045,profile:[.0164,.007],st:[-.445,.47],keyX:.1,keyY:.42,press:[.4,0,-.4],pressX:.115,
- psu:[.15,.04,.03],psuY:-.472,ctrl:[.034,.095,.018],ctrlX:.119,ctrlY:-.3325,cordX:.12,buttonX:-.06,glow:'#8fbcff'};
+ starX:.045,profile:[.0164,.007],st:[-.472,.472],strip:.91,screwY:.465,keyX:.1,keyY:.42,press:[.4,0,-.4],pressX:.115,
+ psu:[.037,.13,.028],psuX:-.1185,psuY:-.265,jbox:[.03,.038,.018],jboxY:-.361,ctrl:[.034,.095,.018],ctrlX:.119,ctrlY:-.3325,cordX:-.12,buttonX:-.06,glow:'#8fbcff'};
 function coverGeometry(w,h,t){
  // Outline with the cord notch; holes: 2 keyholes, 8 for the M4 screws, 6 for the acrylic standoffs.
  const s=new THREE.Shape(),n=.0045,x=L1.cordX;
@@ -19,7 +19,7 @@ function coverGeometry(w,h,t){
   const kx=sx*L1.keyX,y=L1.keyY,p=new THREE.Path();
   p.moveTo(kx-.003,y+.003);p.lineTo(kx+.011,y+.003);p.lineTo(kx+.011,y-.003);p.lineTo(kx+.003,y-.003);p.lineTo(kx+.003,y-.008);
   p.absarc(kx,y-.012,.006,Math.PI*.33,Math.PI*.67,true);p.lineTo(kx-.003,y-.008);p.closePath();s.holes.push(p);
-  L1.tabs.forEach(ty=>round(sx*L1.tabX,ty,.00225));L1.press.forEach(py=>round(sx*L1.pressX,py,.00225));
+  L1.tabs.forEach(ty=>round(sx*L1.tabX,ty,.00225));L1.press.forEach(py=>round(sx*L1.pressX,py,.00225));[-1,1].forEach(q=>{round(sx*L1.starX,q*L1.screwY,.0016);round(sx*.075,q*L1.screwY,.0016)});
  }
  return new THREE.ExtrudeGeometry(s,{depth:t,bevelEnabled:false,curveSegments:14});
 }
@@ -47,12 +47,12 @@ export function RealLampModel({mode,explode,selected,onSelect,motion,onModelRead
  const {width:w,height:h,depth}=dimensions.lamp,f=lampFront,t=L1.t,zc=f-depth; // zc — back edge of the shell, front face of the cover
  const face=useMemo(()=>faceGeometry(w,h,t),[w,h,t]),glow=useMemo(()=>glowTexture(w,h),[w,h]),plate=useMemo(()=>coverGeometry(w-.001,h-.001,L1.cover),[w,h]);
  const tabs=useMemo(()=>({'-1':tabGeometry(-1),'1':tabGeometry(1)}),[]);
- const wires=useMemo(()=>{const x=L1.buttonX,by=-h/2,P=[x,-.452,zc+.03];return {
-  pigtail:[[x,by+.02,f-.035],[x,by+.034,f-.04],[x-.004,-.458,zc+.04],P],
-  lead:[P,[-.02,-.449,zc+.014],[.085,-.448,zc+.01],[.112,-.38,zc+.014]],
-  feed:[[.06,L1.psuY+.02,zc+.012],[.1,-.44,zc+.01],[.122,-.38,zc+.012]],
-  left:[[.106,-.372,zc+.016],[.02,-.4495,zc+.008],[-L1.starX,-.44,zc+.006]],right:[[.108,-.365,zc+.016],[.075,-.43,zc+.008],[L1.starX,-.44,zc+.006]],
-  cord:[[.075,L1.psuY,zc+.015],[.105,-.474,zc+.012],[L1.cordX,-.481,zc+.006],[L1.cordX,-.496,zc+.002],[L1.cordX,-.512,zc-.0035],[L1.cordX,-.74,zc-.0035]],P}},[h,f,zc]);
+ const wires=useMemo(()=>{const x=L1.buttonX,by=-h/2,P=[x,-.478,zc+.014];return {
+  pigtail:[[x,by+.02,f-.035],[x,by+.026,f-.045],[x-.003,-.474,zc+.03],P],
+  lead:[P,[.02,-.48,zc+.008],[.1,-.47,zc+.008],[.119,-.38,zc+.012]],
+  feed:[[L1.psuX+.008,-.33,zc+.012],[-.085,-.487,zc+.006],[.09,-.489,zc+.006],[.124,-.38,zc+.012]],
+  left:[[.106,-.376,zc+.014],[0,-.493,zc+.006],[-L1.starX,-.469,zc+.005]],right:[[.108,-.37,zc+.014],[.07,-.484,zc+.006],[L1.starX,-.469,zc+.005]],
+  cord:[[-.118,-.38,zc+.012],[L1.cordX,-.44,zc+.01],[L1.cordX,-.481,zc+.006],[L1.cordX,-.496,zc+.002],[L1.cordX,-.512,zc-.0035],[L1.cordX,-.74,zc-.0035]],P}},[h,f,zc]);
  useEffect(()=>()=>{face.dispose();glow.dispose();plate.dispose();tabs['-1'].dispose();tabs['1'].dispose()},[face,glow,plate,tabs]);
  useEffect(()=>{onModelReady?.(()=>root.current?.userData.arReady?root.current:null);return()=>onModelReady?.(null)},[onModelReady]);
  useEffect(()=>{gl.shadowMap.needsUpdate=true;invalidate()},[gl,invalidate,lampLight]);
@@ -95,10 +95,12 @@ export function RealLampModel({mode,explode,selected,onSelect,motion,onModelRead
   <group ref={light}><Part id="light" {...pick}>{[-1,1].map(s=><group key={s} position={[s*L1.starX,(L1.st[0]+L1.st[1])/2,zc]}>
    <mesh position={[0,0,.00075]}><boxGeometry args={[pw,L1.st[1]-L1.st[0],.0015]}/><Alu on={on('light')}/></mesh>
    {[-1,1].map(d=><mesh key={d} position={[d*(pw/2-.0006),0,ph/2]}><boxGeometry args={[.0012,L1.st[1]-L1.st[0],ph]}/><Alu on={on('light')}/></mesh>)}
-   <mesh position={[0,0,.0024]}><boxGeometry args={[.008,L1.st[1]-L1.st[0]-.01,.0018]}/><meshStandardMaterial color="#fffdf2" roughness={.6} emissive={L1.glow} emissiveIntensity={1.6*lampLight} userData={{glow:true}}/></mesh>
+   {[-1,1].map(q=><mesh key={'n'+q} position={[0,q*(L1.screwY-(L1.st[0]+L1.st[1])/2),.0028]} rotation={[Math.PI/2,0,0]}><cylinderGeometry args={[.003,.003,.0026,6]}/><meshStandardMaterial color="#b9bcbb" metalness={1} roughness={.3}/></mesh>)}
+   <mesh position={[0,0,.0024]}><boxGeometry args={[.008,L1.strip,.0018]}/><meshStandardMaterial color="#fffdf2" roughness={.6} emissive={L1.glow} emissiveIntensity={1.6*lampLight} userData={{glow:true}}/></mesh>
   </group>)}</Part></group>
   <group ref={power}><Part id="power" {...pick}>
-   <mesh castShadow position={[0,L1.psuY,zc+L1.psu[2]/2]}><boxGeometry args={L1.psu}/><meshStandardMaterial color={on('power')?'#778c83':'#9a9da0'} metalness={.8} roughness={.45}/></mesh>
+   <mesh position={[L1.psuX,L1.jboxY,zc+L1.jbox[2]/2]}><boxGeometry args={L1.jbox}/><meshStandardMaterial color="#ecece8" roughness={.6}/></mesh>
+   <mesh castShadow position={[L1.psuX,L1.psuY,zc+L1.psu[2]/2]}><boxGeometry args={L1.psu}/><meshStandardMaterial color={on('power')?'#778c83':'#9a9da0'} metalness={.8} roughness={.45}/></mesh>
    <mesh position={[L1.ctrlX,L1.ctrlY,zc+L1.ctrl[2]/2]}><boxGeometry args={L1.ctrl}/><meshStandardMaterial color={on('power')?'#a9c1b7':'#ecece8'} roughness={.6}/></mesh>
    <mesh position={[cx,-.481,zc+.0045]}><boxGeometry args={[.012,.01,.009]}/><meshStandardMaterial color="#1c1d1c" roughness={.6}/></mesh>
    <Wire points={wires.cord} color="#ecece8" radius={.0031}/><Wire points={wires.feed} color="#c8322c"/><Wire points={wires.left}/><Wire points={wires.right}/><Wire points={wires.lead} color="#2b2c2b"/>
@@ -116,6 +118,8 @@ export function RealLampModel({mode,explode,selected,onSelect,motion,onModelRead
     <mesh position={[0,-.001,0]}><cylinderGeometry args={[.0038,.0034,.002,18]}/><Zinc on={on('mount')}/></mesh>
     <mesh position={[0,.004,0]}><cylinderGeometry args={[.002,.002,.008,12]}/><Zinc on={on('mount')}/></mesh>
    </group>))}
+   {/* M3 × 8 screws that hold the two profiles: head behind the cover, nut inside the profile */}
+   {[-1,1].flatMap(s=>[-1,1].map(q=><group key={`p${s}${q}`} position={[s*L1.starX,q*L1.screwY,zc-L1.cover]} rotation={[Math.PI/2,0,0]}><mesh position={[0,-.0008,0]}><cylinderGeometry args={[.0028,.0028,.0016,14]}/><Zinc on={on('mount')}/></mesh><mesh position={[0,.003,0]}><cylinderGeometry args={[.0015,.0015,.006,10]}/><Zinc on={on('mount')}/></mesh></group>))}
    {[-1,1].flatMap(s=>[-1,1].map(q=><mesh key={`${s}${q}`} position={[s*.125,q*.478,zc-L1.cover-L1.bump/2]} rotation={[Math.PI/2,0,0]}><cylinderGeometry args={[.006,.006,L1.bump,16]}/><meshStandardMaterial color="#d9dadb" roughness={.9}/></mesh>))}
   </Part></group>
   <group ref={wall}><Part id="mount" {...pick}>{[-1,1].map(s=><group key={s} position={[s*L1.keyX,L1.keyY,0]}>
