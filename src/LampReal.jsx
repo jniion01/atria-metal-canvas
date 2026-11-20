@@ -8,17 +8,17 @@ import {lampStages} from './lampStages';
 // and a screwed back cover that carries the light, the power supply and the
 // keyhole hangers. Dimensions follow the engineering drawing, in metres.
 export const L1={t:.0012,acrylic:.003,cover:.001,bump:.004,tabs:[.45,.15,-.15,-.45],tabW:.03,tabD:.013,tabX:.142,
- starX:.045,profile:[.0164,.007],st:[-.472,.472],strip:.91,screwY:.465,keyX:.1,keyY:.42,press:[.4,0,-.4],pressX:.115,
- psu:[.037,.13,.028],psuX:-.1185,psuY:-.265,jbox:[.03,.038,.018],jboxY:-.361,ctrl:[.034,.095,.018],ctrlX:.119,ctrlY:-.3325,cordX:-.12,buttonX:-.06,glow:'#8fbcff'};
+ starX:.045,profile:[.0164,.007],st:[-.472,.472],strip:.91,screwY:.465,keyX:.1,keyY:.435,press:[.4,0,-.4],pressX:.115,
+ psu:[.037,.13,.028],psuX:-.1185,psuY:-.265,jbox:[.03,.038,.018],jboxY:-.176,jbox2Y:-.361,ctrl:[.034,.095,.018],ctrlX:.119,ctrlY:-.3325,cordX:-.12,buttonX:.115,glow:'#8fbcff'};
 function coverGeometry(w,h,t){
  // Outline with the cord notch; holes: 2 keyholes, 8 for the M4 screws, 6 for the acrylic standoffs.
  const s=new THREE.Shape(),n=.0045,x=L1.cordX;
  s.moveTo(-w/2,-h/2);s.lineTo(x-n,-h/2);s.lineTo(x-n,-h/2+.011);s.lineTo(x+n,-h/2+.011);s.lineTo(x+n,-h/2);s.lineTo(w/2,-h/2);s.lineTo(w/2,h/2);s.lineTo(-w/2,h/2);s.closePath();
  const round=(cx,cy,r)=>{const p=new THREE.Path();p.absarc(cx,cy,r,0,Math.PI*2,true);s.holes.push(p)};
- for(const sx of [-1,1]){ // L-shaped keyhole: enter, drop 12 mm, slide 8 mm
-  const kx=sx*L1.keyX,y=L1.keyY,p=new THREE.Path();
-  p.moveTo(kx-.003,y+.003);p.lineTo(kx+.011,y+.003);p.lineTo(kx+.011,y-.003);p.lineTo(kx+.003,y-.003);p.lineTo(kx+.003,y-.008);
-  p.absarc(kx,y-.012,.006,Math.PI*.33,Math.PI*.67,true);p.lineTo(kx-.003,y-.008);p.closePath();s.holes.push(p);
+ for(const sx of [-1,1]){ // keyhole: enter Ø12, slide 12 mm sideways, drop 8 mm — the screw rests at the top of the vertical leg
+  const kx=sx*L1.keyX,y=L1.keyY,y0=y-.008,ex=kx+.012,a=Math.PI/6,p=new THREE.Path();
+  p.moveTo(kx-.003,y0-.003);p.lineTo(kx-.003,y);p.absarc(kx,y,.003,Math.PI,0,true);p.lineTo(kx+.003,y0+.003);
+  p.absarc(ex,y0,.006,Math.PI-a,-Math.PI+a,true);p.closePath();s.holes.push(p);
   L1.tabs.forEach(ty=>round(sx*L1.tabX,ty,.00225));L1.press.forEach(py=>round(sx*L1.pressX,py,.00225));[-1,1].forEach(q=>{round(sx*L1.starX,q*L1.screwY,.0016);round(sx*.075,q*L1.screwY,.0016)});
  }
  return new THREE.ExtrudeGeometry(s,{depth:t,bevelEnabled:false,curveSegments:14});
@@ -47,12 +47,12 @@ export function RealLampModel({mode,explode,selected,onSelect,motion,onModelRead
  const {width:w,height:h,depth}=dimensions.lamp,f=lampFront,t=L1.t,zc=f-depth; // zc — back edge of the shell, front face of the cover
  const face=useMemo(()=>faceGeometry(w,h,t),[w,h,t]),glow=useMemo(()=>glowTexture(w,h),[w,h]),plate=useMemo(()=>coverGeometry(w-.001,h-.001,L1.cover),[w,h]);
  const tabs=useMemo(()=>({'-1':tabGeometry(-1),'1':tabGeometry(1)}),[]);
- const wires=useMemo(()=>{const x=L1.buttonX,by=-h/2,P=[x,-.478,zc+.014];return {
-  pigtail:[[x,by+.02,f-.035],[x,by+.026,f-.045],[x-.003,-.474,zc+.03],P],
-  lead:[P,[.02,-.48,zc+.008],[.1,-.47,zc+.008],[.119,-.38,zc+.012]],
-  feed:[[L1.psuX+.008,-.33,zc+.012],[-.085,-.487,zc+.006],[.09,-.489,zc+.006],[.124,-.38,zc+.012]],
-  left:[[.106,-.376,zc+.014],[0,-.493,zc+.006],[-L1.starX,-.469,zc+.005]],right:[[.108,-.37,zc+.014],[.07,-.484,zc+.006],[L1.starX,-.469,zc+.005]],
-  cord:[[-.118,-.38,zc+.012],[L1.cordX,-.44,zc+.01],[L1.cordX,-.481,zc+.006],[L1.cordX,-.496,zc+.002],[L1.cordX,-.512,zc-.0035],[L1.cordX,-.74,zc-.0035]],P}},[h,f,zc]);
+ const wires=useMemo(()=>{const x=L1.buttonX,by=-h/2,P=[.128,-.441,zc+.014],c=L1.cordX;return {
+  pigtail:[[x,by+.02,f-.035],[x,by+.03,f-.045],[.126,-.452,zc+.024],P],
+  lead:[P,[.128,-.41,zc+.012],[.126,-.38,zc+.012]],
+  feed:[[-.118,-.33,zc+.012],[-.118,-.345,zc+.012],[-.106,-.38,zc+.01],[-.106,-.478,zc+.006],[-.096,-.488,zc+.006],[.106,-.488,zc+.006],[.119,-.476,zc+.006],[.119,-.38,zc+.012]],
+  left:[[.11,-.378,zc+.014],[.108,-.47,zc+.006],[-L1.starX+.02,-.482,zc+.005],[-L1.starX,-.47,zc+.005]],right:[[.113,-.376,zc+.014],[.1,-.465,zc+.006],[L1.starX+.02,-.48,zc+.005],[L1.starX,-.47,zc+.005]],
+  cord:[[-.118,-.2,zc+.012],[-.13,-.176,zc+.01],[-.143,-.19,zc+.008],[-.143,-.41,zc+.008],[c,-.432,zc+.008],[c,-.481,zc+.006],[c,-.496,zc+.002],[c,-.512,zc-.0035],[c,-.74,zc-.0035]],P}},[h,f,zc]);
  useEffect(()=>()=>{face.dispose();glow.dispose();plate.dispose();tabs['-1'].dispose();tabs['1'].dispose()},[face,glow,plate,tabs]);
  useEffect(()=>{onModelReady?.(()=>root.current?.userData.arReady?root.current:null);return()=>onModelReady?.(null)},[onModelReady]);
  useEffect(()=>{gl.shadowMap.needsUpdate=true;invalidate()},[gl,invalidate,lampLight]);
@@ -99,10 +99,10 @@ export function RealLampModel({mode,explode,selected,onSelect,motion,onModelRead
    <mesh position={[0,0,.0024]}><boxGeometry args={[.008,L1.strip,.0018]}/><meshStandardMaterial color="#fffdf2" roughness={.6} emissive={L1.glow} emissiveIntensity={1.6*lampLight} userData={{glow:true}}/></mesh>
   </group>)}</Part></group>
   <group ref={power}><Part id="power" {...pick}>
-   <mesh position={[L1.psuX,L1.jboxY,zc+L1.jbox[2]/2]}><boxGeometry args={L1.jbox}/><meshStandardMaterial color="#ecece8" roughness={.6}/></mesh>
+   {[L1.jboxY,L1.jbox2Y].map(y=><mesh key={y} position={[L1.psuX,y,zc+L1.jbox[2]/2]}><boxGeometry args={L1.jbox}/><meshStandardMaterial color="#ecece8" roughness={.6}/></mesh>)}
    <mesh castShadow position={[L1.psuX,L1.psuY,zc+L1.psu[2]/2]}><boxGeometry args={L1.psu}/><meshStandardMaterial color={on('power')?'#778c83':'#9a9da0'} metalness={.8} roughness={.45}/></mesh>
    <mesh position={[L1.ctrlX,L1.ctrlY,zc+L1.ctrl[2]/2]}><boxGeometry args={L1.ctrl}/><meshStandardMaterial color={on('power')?'#a9c1b7':'#ecece8'} roughness={.6}/></mesh>
-   <mesh position={[cx,-.481,zc+.0045]}><boxGeometry args={[.012,.01,.009]}/><meshStandardMaterial color="#1c1d1c" roughness={.6}/></mesh>
+   {[-.481,-.425].map(y=><mesh key={y} position={[cx,y,zc+.0045]}><boxGeometry args={[.012,.01,.009]}/><meshStandardMaterial color="#1c1d1c" roughness={.6}/></mesh>)}
    <Wire points={wires.cord} color="#ecece8" radius={.0031}/><Wire points={wires.feed} color="#c8322c"/><Wire points={wires.left}/><Wire points={wires.right}/><Wire points={wires.lead} color="#2b2c2b"/>
   </Part></group>
   <group ref={cover}><Part id="cover" {...pick}>
